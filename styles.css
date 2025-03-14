@@ -10,9 +10,9 @@ body {
     min-height: 100vh;
     overflow-x: hidden;
     background-attachment: fixed;
-}
-
-h1 {
+  }
+  
+  h1 {
     text-align: center;
     color: #4682b4;
     font-weight: 700;
@@ -34,14 +34,68 @@ h1::after {
     height: 3px;
     background: linear-gradient(90deg, transparent, #4682b4, transparent);
     border-radius: 3px;
-}
-
-section {
+  }
+  
+  section {
     margin-bottom: 40px;
     width: 100%;
     max-width: 1200px;
     opacity: 0;
     animation: sectionFadeIn 0.6s ease-out forwards;
+    position: relative;
+    padding-bottom: 50px;
+}
+
+/* Все кнопки в section отображаются в строку */
+section button {
+    display: inline-block;
+    vertical-align: top;
+    margin-right: 10px;
+    margin-bottom: 10px;
+}
+
+section > h2 {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+/* Для размещения кнопок полем боя в ряд */
+section > button {
+    display: inline-block;
+    margin-right: 10px;
+}
+
+/* Создаем контейнер для кнопок */
+.buttons-row {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.buttons-row button {
+    margin: 0;
+}
+
+/* Стили для заголовков */
+section > h2:first-child {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+/* Стили для секции с полем боя */
+section:has(h2:contains("Поле боя")) {
+    display: flex;
+    flex-direction: column;
+}
+
+section:has(h2:contains("Поле боя")) > *:not(h2) {
+    display: inline-flex;
+}
+
+section:has(h2:contains("Поле боя")) > h2 ~ button {
+    margin: 5px 10px 5px 0;
 }
 
 @keyframes sectionFadeIn {
@@ -53,7 +107,11 @@ section:nth-child(2) { animation-delay: 0.1s; }
 section:nth-child(3) { animation-delay: 0.2s; }
 section:nth-child(4) { animation-delay: 0.3s; }
 
-h2 {
+section button {
+    flex: 0 0 auto;
+  }
+  
+  h2 {
     color: #4682b4;
     margin-bottom: 15px;
     font-weight: 700;
@@ -61,6 +119,7 @@ h2 {
     align-items: center;
     position: relative;
     padding-left: 15px;
+    width: 100%;
 }
 
 h2::before {
@@ -76,17 +135,17 @@ h2::before {
 h2 i {
     margin-right: 10px;
     font-size: 1.2em;
-}
-
-table {
+  }
+  
+  table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0 10px;
     background: transparent;
     margin-bottom: 15px;
-}
-
-.card {
+  }
+  
+  .card {
     background-color: rgba(42, 46, 51, 0.9);
     border: 1px solid #4682b4;
     border-radius: 10px;
@@ -94,9 +153,9 @@ table {
     margin-bottom: 15px;
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     backdrop-filter: blur(5px);
-}
-
-.card:hover {
+  }
+  
+  .card:hover {
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(70, 130, 180, 0.4);
     transform: translateY(-4px);
 }
@@ -161,16 +220,16 @@ tr.current-turn::after {
     0% { opacity: 0.3; }
     50% { opacity: 0.8; }
     100% { opacity: 0.3; }
-}
-
-th, td {
+  }
+  
+  th, td {
     padding: 16px;
     text-align: left;
     border-bottom: none;
     position: relative;
-}
-
-th {
+  }
+  
+  th {
     background: linear-gradient(135deg, #4682b4, #3a6d9b);
     color: #fff;
     font-weight: 700;
@@ -201,9 +260,9 @@ tr:not(:first-child) td:first-child {
 tr:not(:first-child) td:last-child {
     border-top-right-radius: 8px;
     border-bottom-right-radius: 8px;
-}
-
-th i {
+  }
+  
+  th i {
     margin-right: 8px;
     font-size: 1.1em;
     display: inline-block;
@@ -353,9 +412,9 @@ td:nth-child(7) {
 /* Для кнопки действий */
 td:last-child {
     text-align: center;
-}
-
-.progress-bar {
+  }
+  
+  .progress-bar {
     height: 8px;
     background: linear-gradient(to right, #4682b4, #2a2e33);
     border-radius: 4px;
@@ -380,29 +439,29 @@ td:last-child {
 @keyframes progressShine {
     0% { transform: translateX(-100%); }
     100% { transform: translateX(100%); }
-}
-
-@keyframes fill {
+  }
+  
+  @keyframes fill {
     from { width: 0; opacity: 0; }
     to { width: 100%; opacity: 1; }
-}
-
-.current-turn {
+  }
+  
+  .current-turn {
     background-color: rgba(70, 130, 180, 0.25);
     border: 2px solid #4682b4;
     box-shadow: 0 0 15px rgba(70, 130, 180, 0.6);
     animation: pulse 1.5s infinite ease-in-out;
     position: relative;
     z-index: 2;
-}
-
-@keyframes pulse {
+  }
+  
+  @keyframes pulse {
     0% { border-color: #4682b4; box-shadow: 0 0 15px rgba(70, 130, 180, 0.5); }
     50% { border-color: #3a6d9b; box-shadow: 0 0 25px rgba(70, 130, 180, 0.8); }
     100% { border-color: #4682b4; box-shadow: 0 0 15px rgba(70, 130, 180, 0.5); }
-}
-
-button {
+  }
+  
+  button {
     padding: 12px 22px;
     background: linear-gradient(135deg, #4682b4, #3a6d9b);
     color: #ffffff;
@@ -414,25 +473,27 @@ button {
     position: relative;
     overflow: hidden;
     display: flex;
+    justify-content: center;
     align-items: center;
     gap: 10px;
     font-weight: 600;
     letter-spacing: 0.5px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+    text-align: center;
 }
-
-button:hover {
+  
+  button:hover {
     background: linear-gradient(135deg, #3a6d9b, #2d5a82);
     box-shadow: 0 7px 14px rgba(0, 0, 0, 0.4), 0 3px 6px rgba(0, 0, 0, 0.3);
     transform: translateY(-2px);
-}
-
-button:active {
+  }
+  
+  button:active {
     transform: translateY(1px);
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
-
-button::after {
+  }
+  
+  button::after {
     content: '';
     position: absolute;
     width: 150%;
@@ -441,9 +502,9 @@ button::after {
     left: -150%;
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
     animation: shine 2s infinite;
-}
-
-@keyframes shine {
+  }
+  
+  @keyframes shine {
     0% { left: -150%; }
     20% { left: 150%; }
     100% { left: 150%; }
@@ -451,9 +512,9 @@ button::after {
 
 button i {
     font-size: 1.2em;
-}
-
-select, input[type="number"], input[type="text"] {
+  }
+  
+  select, input[type="number"], input[type="text"] {
     padding: 12px 15px;
     margin: 5px;
     border-radius: 8px;
@@ -469,9 +530,9 @@ select:focus, input[type="number"]:focus, input[type="text"]:focus {
     outline: none;
     border-color: #4682b4;
     box-shadow: 0 0 0 3px rgba(70, 130, 180, 0.3);
-}
-
-.hp-expression {
+  }
+  
+  .hp-expression {
     color: #aaa;
     font-size: 0.9em;
     transition: color 0.3s ease;
@@ -479,9 +540,9 @@ select:focus, input[type="number"]:focus, input[type="text"]:focus {
 
 tr:hover .hp-expression {
     color: #dfe1e5;
-}
-
-#round-counter {
+  }
+  
+  #round-counter {
     font-size: 1.3em;
     margin-left: 15px;
     color: #4682b4;
@@ -490,28 +551,29 @@ tr:hover .hp-expression {
     padding: 5px 12px;
     border-radius: 20px;
     border: 1px solid rgba(70, 130, 180, 0.3);
-}
-
-@keyframes fadeIn {
+    flex: 0 0 auto;
+  }
+  
+  @keyframes fadeIn {
     from { opacity: 0; transform: translateY(30px); }
     to { opacity: 1; transform: translateY(0); }
-}
-
-.fade-in {
+  }
+  
+  .fade-in {
     animation: fadeIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-}
-
-.fade-out {
+  }
+  
+  .fade-out {
     animation: fadeOut 0.4s cubic-bezier(0.55, 0.085, 0.68, 0.53) forwards;
-}
-
-@keyframes fadeOut {
+  }
+  
+  @keyframes fadeOut {
     from { opacity: 1; transform: scale(1); }
     to { opacity: 0; transform: scale(0.9); }
-}
-
-/* Стили для карты */
-#battlefield-container {
+  }
+  
+  /* Стили для карты */
+  #battlefield-container {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -527,11 +589,25 @@ tr:hover .hp-expression {
     background-color: rgba(30, 33, 36, 0.8);
 }
 
-#battlefield-container:active {
-    cursor: grabbing;
+/* Добавляем стили для контейнера кнопок управления полем боя */
+#battlefield-controls {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    width: 100%;
 }
 
-#battlefield {
+#battlefield-controls button {
+    flex: 0 0 auto;
+  }
+  
+  #battlefield-container:active {
+    cursor: grabbing;
+  }
+  
+  #battlefield {
     width: 1000px;
     height: 1000px;
     background: linear-gradient(45deg, #252a30, #1a1d21);
@@ -543,9 +619,9 @@ tr:hover .hp-expression {
         linear-gradient(rgba(70, 130, 180, 0.08) 1px, transparent 1px),
         linear-gradient(90deg, rgba(70, 130, 180, 0.08) 1px, transparent 1px);
     background-size: 10px 10px, 50px 50px, 50px 50px;
-}
-
-.character {
+  }
+  
+  .character {
     width: 50px;
     height: 50px;
     border-radius: 50%;
@@ -611,11 +687,11 @@ tr:hover .hp-expression {
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
   
-.character.player {
+  .character.player {
     background: linear-gradient(135deg, #4682b4, #3a6d9b);
-}
+  }
   
-.character.current-player {
+  .character.current-player {
     background: linear-gradient(135deg, #2ecc71, #27ae60);
     box-shadow: 0 0 15px rgba(46, 204, 113, 0.6);
     animation: currentPlayerPulse 1.5s infinite alternate;
@@ -624,26 +700,26 @@ tr:hover .hp-expression {
 @keyframes currentPlayerPulse {
     0% { box-shadow: 0 0 10px rgba(46, 204, 113, 0.6); }
     100% { box-shadow: 0 0 20px rgba(46, 204, 113, 0.8); }
-}
+  }
   
-.character.enemy {
+  .character.enemy {
     background: linear-gradient(135deg, #e74c3c, #c0392b);
-}
+  }
   
-.character:hover {
+  .character:hover {
     transform: scale(1.12);
     z-index: 10;
-}
+  }
   
-.distance-line {
+  .distance-line {
     position: absolute;
     border-top: 2px dashed rgba(70, 130, 180, 0.7);
     transform-origin: 0 0;
     z-index: 5;
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
-}
+  }
   
-.distance-label {
+  .distance-label {
     position: absolute;
     background-color: rgba(42, 46, 51, 0.9);
     color: #dfe1e5;
@@ -655,9 +731,9 @@ tr:hover .hp-expression {
     transform: translate(-50%, -50%);
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
     z-index: 20;
-}
+  }
   
-.wall-line, .temp-wall {
+  .wall-line, .temp-wall {
     position: absolute;
     border-top: 3px solid rgba(255, 255, 255, 0.85);
     transform-origin: 0 0;
@@ -665,27 +741,27 @@ tr:hover .hp-expression {
     pointer-events: all;
     cursor: pointer;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
-}
+  }
   
-.temp-wall {
+  .temp-wall {
     border-top: 3px dashed rgba(255, 255, 255, 0.6);
-}
+  }
   
-.grid-cell {
+  .grid-cell {
     position: absolute;
     width: 50px;
     height: 50px;
     border: 1px solid rgba(70, 130, 180, 0.08);
     pointer-events: none;
-}
+  }
   
-.grid-cell.highlight {
+  .grid-cell.highlight {
     background-color: rgba(70, 130, 180, 0.25);
     transition: background-color 0.3s ease;
     box-shadow: inset 0 0 15px rgba(70, 130, 180, 0.2);
-}
+  }
   
-.wall-snap-point {
+  .wall-snap-point {
     position: absolute;
     width: 8px;
     height: 8px;
@@ -697,15 +773,15 @@ tr:hover .hp-expression {
     z-index: 11;
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
     transition: all 0.2s ease;
-}
+  }
   
-.wall-snap-point:hover {
+  .wall-snap-point:hover {
     background-color: #ffffff;
     transform: translate(-50%, -50%) scale(1.7);
     box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-}
+  }
   
-.tooltip {
+  .tooltip {
     position: absolute;
     background-color: rgba(42, 46, 51, 0.95);
     color: #fff;
@@ -722,9 +798,9 @@ tr:hover .hp-expression {
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
     transition: opacity 0.3s ease, transform 0.3s ease;
     transform: translateY(5px);
-}
+  }
   
-.character:hover .tooltip {
+  .character:hover .tooltip {
     display: block;
     animation: tooltipFade 0.3s forwards;
 }
@@ -732,24 +808,24 @@ tr:hover .hp-expression {
 @keyframes tooltipFade {
     from { opacity: 0; transform: translateY(5px); }
     to { opacity: 1; transform: translateY(0); }
-}
+  }
   
-#draw-mode-toggle {
+  #draw-mode-toggle {
     background: linear-gradient(135deg, #2ecc71, #27ae60);
-}
+  }
   
-#draw-mode-toggle.active {
+  #draw-mode-toggle.active {
     background: linear-gradient(135deg, #27ae60, #219653);
     box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
-}
+  }
   
-.ac-container {
+  .ac-container {
     display: flex;
     align-items: center;
     gap: 5px;
-}
+  }
   
-.battlefield-ac-circle {
+  .battlefield-ac-circle {
     position: absolute;
     width: 18px;
     height: 18px;
@@ -766,9 +842,9 @@ tr:hover .hp-expression {
     z-index: 12;
     font-weight: bold;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
+  }
   
-.steam-bar {
+  .steam-bar {
     width: 100%;
     height: 6px;
     background: rgba(42, 46, 51, 0.8);
@@ -777,9 +853,9 @@ tr:hover .hp-expression {
     border: 1px solid #e67e22;
     box-shadow: 0 0 8px rgba(230, 126, 34, 0.3);
     margin-top: 2px;
-}
+  }
   
-.steam-fill {
+  .steam-fill {
     height: 100%;
     background: linear-gradient(90deg, #ff9f43, #ee5253);
     box-shadow: 0 0 5px rgba(238, 82, 83, 0.7);
@@ -802,9 +878,9 @@ tr:hover .hp-expression {
 @keyframes steamShine {
     0% { transform: translateX(-100%); }
     100% { transform: translateX(100%); }
-}
+  }
   
-.steam-display {
+  .steam-display {
     font-size: 10px;
     color: #ffffff;
     text-shadow: 0 0 4px rgba(0, 0, 0, 0.9);
@@ -1122,4 +1198,247 @@ h2.combat-participants i {
 .combat-table td:last-child {
     width: 10%;
 }
+
+/* Стили для секции с полем боя */
+.battlefield-section {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 15px;
+}
+
+.battlefield-section .controls-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    width: 100%;
+}
+
+.battlefield-section .controls-container button {
+    flex: 0 0 auto;
+    margin: 0;
+  }
+  
+/* Стили для кнопок после заголовка */
+section {
+    display: block;
+}
+
+/* Контейнер для кнопок поля боя */
+.battlefield-buttons {
+    display: none; /* Скрываем, если они не используются */
+}
+
+/* Очень простое решение для кнопок */
+h2 + button, 
+h2 ~ button {
+    margin-right: 10px;
+    display: inline-block;
+}
+
+/* Специальные стили только для кнопок поля боя */
+h2:contains("Поле боя") ~ button,
+h2:contains("Поле") ~ button {
+    display: inline-block;
+    margin-right: 10px;
+    float: left;
+}
+
+/* Очистка после кнопок */
+h2:contains("Поле боя") ~ button:last-of-type::after,
+h2:contains("Поле") ~ button:last-of-type::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+/* Очень конкретные стили для кнопок поля боя */
+section button {
+    display: inline-block;
+    vertical-align: top;
+    margin-right: 10px;
+    margin-bottom: 10px;
+}
+
+/* Обертка для заголовка, чтобы кнопки отображались в строку */
+section h2 {
+    display: block;
+    width: 100%;
+}
+
+/* Добавляю очень конкретные стили для секции поля боя */
+section button.battlefield-control {
+    display: inline-block !important;
+    float: left !important;
+    clear: none !important;
+    vertical-align: top !important;
+    margin-right: 10px !important;
+}
+
+/* Стили только для этих 4 кнопок - попробуем еще конкретнее */
+button:nth-of-type(1), button:nth-of-type(2), 
+button:nth-of-type(3), button:nth-of-type(4) {
+    display: inline-block !important;
+    float: left !important;
+    margin-right: 10px !important;
+}
+
+/* Добавляю очень простой стиль для кнопок в разделе поля боя */
+#battlefield-buttons {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+#battlefield-buttons button {
+    margin: 0;
+}
+
+/* Если раздел поля боя имеет class="battlefield-section" */
+.battlefield-section button {
+    float: left !important;
+    display: inline-block !important;
+    clear: none !important;
+}
+
+/* Улучшенные стили для кнопок кубиков */
+button {
+    padding: 12px 22px;
+    background: linear-gradient(135deg, #4682b4, #3a6d9b);
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    margin: 5px;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+    text-align: center;
+}
+
+/* Кнопки для кубиков с фиксированным размером */
+.dice-btn, 
+button[id*="d"],
+button[class*="d"],
+button[data-dice],
+button:contains("d20"),
+button:contains("d12"),
+button:contains("d10"),
+button:contains("d8"),
+button:contains("d6"),
+button:contains("d4") {
+    width: 50px !important;
+    height: 50px !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    padding: 0 !important;
+    text-align: center !important;
+    font-size: 1.1rem !important;
+}
+
+/* Убираем любой сдвиг который может возникать */
+button span,
+button i {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Специфичные стили для контейнера кубиков и самих кнопок */
+div[class*="dice"] button,
+div[id*="dice"] button,
+.dice-container button,
+.dice-row button,
+#dice-row button,
+#dice-container button {
+    width: 50px !important;
+    height: 50px !important;
+    padding: 0 !important;
+    margin: 5px !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+    font-size: 1.1rem !important;
+    line-height: 1 !important;
+}
+
+/* Устанавливаем стиль для текста внутри кнопок */
+button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+button > span,
+button > div,
+button > p {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Максимально специфичные стили для кнопок кубиков */
+body button {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+}
+
+/* Специальные стили для кнопок кубиков */
+body button:nth-child(n) {
+    width: auto;
+    height: auto;
+    min-width: 50px;
+    min-height: 50px;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+    font-size: 16px !important;
+}
+
+/* Принудительный стиль для кнопок кубиков */
+button {
+    position: relative !important;
+}
+
+button::before {
+    display: none !important;
+}
+
+/* Сбрасываем все внутренние элементы для правильного отображения */
+button * {
+    margin: 0 auto !important;
+    position: static !important;
+    text-align: center !important;
+}
+
+/* Отдельный стиль для кнопок с кубиками */
+button.dice,
+button[class*="dice"],
+button[id*="dice"] {
+    width: 50px !important;
+    height: 50px !important;
+    padding: 0 !important;
+    position: relative !important;
+    display: inline-flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+  
   

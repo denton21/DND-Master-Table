@@ -1,0 +1,440 @@
+body {
+    font-family: 'Roboto', sans-serif;
+    margin: 20px;
+    background: linear-gradient(135deg, #1e2124, #25282b);
+    color: #dfe1e5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  
+  h1 {
+    text-align: center;
+    color: #4682b4;
+    font-weight: 700;
+    margin-bottom: 30px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+  
+  section {
+    margin-bottom: 40px;
+    width: 100%;
+    max-width: 1200px;
+  }
+  
+  h2 {
+    color: #4682b4;
+    margin-bottom: 15px;
+    font-weight: 700;
+  }
+  
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: transparent;
+  }
+  
+  .card {
+    background-color: #2a2e33;
+    border: 1px solid #4682b4;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    margin-bottom: 10px;
+    transition: all 0.3s ease;
+  }
+  
+  .card:hover {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+    transform: translateY(-2px);
+  }
+  
+  th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #3a3f44;
+  }
+  
+  th {
+    background-color: #4682b4;
+    color: #dfe1e5;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  
+  th i {
+    margin-right: 8px;
+  }
+  
+  td {
+    transition: background-color 0.3s;
+  }
+  
+  td[contenteditable]:focus {
+    outline: 2px solid #4682b4;
+    background-color: #3a3f44;
+    border-radius: 4px;
+  }
+  
+  .progress-bar {
+    height: 8px;
+    background: linear-gradient(to right, #4682b4, #2a2e33);
+    border-radius: 4px;
+    margin-top: 4px;
+    animation: fill 0.5s ease-out;
+  }
+  
+  @keyframes fill {
+    from { width: 0; }
+    to { width: 100%; }
+  }
+  
+  .current-turn {
+    background-color: rgba(70, 130, 180, 0.2);
+    border: 2px solid #4682b4;
+    box-shadow: 0 0 10px rgba(70, 130, 180, 0.5);
+    animation: pulse 1.5s infinite ease-in-out;
+  }
+  
+  @keyframes pulse {
+    0% { border-color: #4682b4; box-shadow: 0 0 10px rgba(70, 130, 180, 0.5); }
+    50% { border-color: #3a6d9b; box-shadow: 0 0 15px rgba(70, 130, 180, 0.8); }
+    100% { border-color: #4682b4; box-shadow: 0 0 10px rgba(70, 130, 180, 0.5); }
+  }
+  
+  button {
+    padding: 10px 20px;
+    background-color: #4682b4;
+    color: #dfe1e5;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 5px;
+    transition: transform 0.2s, background-color 0.2s;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  button:hover {
+    background-color: #3a6d9b;
+  }
+  
+  button:active {
+    transform: scale(0.95);
+  }
+  
+  button::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: -100%;
+    background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    animation: shine 1.5s infinite;
+  }
+  
+  @keyframes shine {
+    0% { left: -100%; }
+    20% { left: 100%; }
+    100% { left: 100%; }
+  }
+  
+  select, input[type="number"], input[type="text"] {
+    padding: 10px;
+    margin: 5px;
+    border-radius: 5px;
+    border: 1px solid #3a3f44;
+    background-color: #2a2e33;
+    color: #dfe1e5;
+    width: 100%;
+  }
+  
+  .hp-expression {
+    color: #888;
+    font-size: 0.9em;
+  }
+  
+  #round-counter {
+    font-size: 1.2em;
+    margin-left: 10px;
+    color: #4682b4;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+  
+  .fade-out {
+    animation: fadeOut 0.3s ease-out forwards;
+  }
+  
+  @keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+  }
+  
+  /* Стили для карты */
+  #battlefield-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 2px solid #4682b4;
+    border-radius: 8px;
+    margin-top: 20px;
+    overflow: hidden;
+    width: 1000px;
+    height: 600px;
+    position: relative;
+    cursor: grab;
+  }
+  
+  #battlefield-container:active {
+    cursor: grabbing;
+  }
+  
+  #battlefield {
+    width: 1000px;
+    height: 1000px;
+    background: linear-gradient(45deg, #2a2e33, #1e2124);
+    position: absolute;
+    transform-origin: 0 0;
+    transition: transform 0.2s ease;
+    background-image: 
+        linear-gradient(rgba(70, 130, 180, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(70, 130, 180, 0.1) 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+  
+  .character {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    position: absolute;
+    cursor: move;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: #dfe1e5;
+    user-select: none;
+    transition: transform 0.2s;
+
+}
+
+.hp-container {
+    position: absolute;
+    bottom: -40px;
+    width: 60px;
+    text-align: center;
+}
+
+.hp-bar {
+    width: 100%;
+    height: 6px;
+    background: #2a2e33;
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid #4682b4;
+    box-shadow: 0 0 5px rgba(70, 130, 180, 0.3);
+}
+
+.hp-fill {
+    height: 100%;
+    background: linear-gradient(to right, #4682b4, #2ecc71);
+    transition: width 0.3s ease;
+}
+
+.hp-display {
+    font-size: 10px;
+    color: #ffffff;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+    margin-top: 2px;
+}
+
+.initial {
+    font-size: 16px;
+    font-weight: bold;
+    position: relative;
+    top: -2px;
+}
+  
+  .character.player {
+    background-color: #4682b4;
+  }
+  
+  .character.current-player {
+    background-color: #2ecc71;
+  }
+  
+  .character.enemy {
+    background-color: #e74c3c;
+  }
+  
+  .character:hover {
+    transform: scale(1.1);
+  }
+  
+  .distance-line {
+    position: absolute;
+    border-top: 1px dashed #4682b4;
+    transform-origin: 0 0;
+    z-index: 5;
+  }
+  
+  .distance-label {
+    position: absolute;
+    background-color: rgba(42, 46, 51, 0.9);
+    color: #dfe1e5;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    border: 1px solid #4682b4;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+  }
+  
+  .wall-line, .temp-wall {
+    position: absolute;
+    border-top: 3px solid #ffffff;
+    transform-origin: 0 0;
+    z-index: 10;
+    pointer-events: all;
+    cursor: pointer;
+  }
+  
+  .temp-wall {
+    border-top: 3px dashed rgba(255, 255, 255, 0.5);
+  }
+  
+  .grid-cell {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    border: 1px solid rgba(70, 130, 180, 0.1);
+    pointer-events: none;
+  }
+  
+  .grid-cell.highlight {
+    background-color: rgba(70, 130, 180, 0.2);
+    transition: background-color 0.2s ease;
+  }
+  
+  .wall-snap-point {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: all;
+    cursor: pointer;
+    z-index: 11;
+  }
+  
+  .wall-snap-point:hover {
+    background-color: #ffffff;
+    transform: translate(-50%, -50%) scale(1.5);
+    transition: transform 0.2s ease, background-color 0.2s ease;
+  }
+  
+  .tooltip {
+    position: absolute;
+    background-color: #2a2e33;
+    color: #dfe1e5;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    pointer-events: none;
+    display: none;
+    z-index: 10;
+    border: 1px solid #4682b4;
+    top: -30px;
+  }
+  
+  .character:hover .tooltip {
+    display: block;
+  }
+  
+  #draw-mode-toggle {
+    background-color: #2ecc71;
+  }
+  
+  #draw-mode-toggle.active {
+    background-color: #27ae60;
+  }
+  
+  .ac-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  
+  .ac-circle {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #4682b4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #dfe1e5;
+    border: 2px solid #3a6d9b;
+  }
+  
+  .battlefield-ac-circle {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: #4682b4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: #dfe1e5;
+    border: 2px solid #3a6d9b;
+    top: -8px;
+    right: -8px;
+    z-index: 2;
+  }
+  
+  .steam-bar {
+    width: 100%;
+    height: 6px;
+    background: #2a2e33;
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid #e67e22;
+    box-shadow: 0 0 5px rgba(230, 126, 34, 0.3);
+    margin-top: 2px;
+  }
+  
+  .steam-fill {
+    height: 100%;
+    background: linear-gradient(to right, #e67e22, #d35400);
+    transition: width 0.3s ease;
+  }
+  
+  .steam-display {
+    font-size: 10px;
+    color: #ffffff;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+    margin-top: 2px;
+  }
+  

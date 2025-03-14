@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Кампания</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1>Кампания</h1>
+  <button onclick="window.location.href='combat.html'; playSound('button-click.mp3')">
+    <i class="fas fa-sword"></i> Управление боем
+  </button>
+
+  <section>
+    <h2>Персонажи игроков</h2>
+    <table id="pcs-table">
+      <tr>
+        <th><i class="fas fa-user"></i> Имя</th>
+        <th><i class="fas fa-heart"></i> Максимум хитов</th>
+        <th><i class="fas fa-shield-alt"></i> Класс доспехов</th>
+        <th><i class="fas fa-bolt"></i> Паровые заряды</th> <!-- Новый столбец -->
+        <th><i class="fas fa-backpack"></i> Инвентарь</th>
+        <th><i class="fas fa-cog"></i> Действия</th>
+      </tr>
+    </table>
+    <button onclick="addRow('pcs-table'); playSound('add-swipe.mp3')">
+      <i class="fas fa-plus"></i> Добавить персонажа
+    </button>
+  </section>
+
+  <section>
+    <h2>Монстры</h2>
+    <table id="monsters-table">
+      <tr>
+        <th><i class="fas fa-user"></i> Имя</th>
+        <th><i class="fas fa-heart"></i> Максимум хитов</th>
+        <th><i class="fas fa-shield-alt"></i> Класс доспехов</th>
+        <th><i class="fas fa-bolt"></i> Паровые заряды</th> <!-- Новый столбец -->
+        <th><i class="fas fa-backpack"></i> Инвентарь</th>
+        <th><i class="fas fa-cog"></i> Действия</th>
+      </tr>
+    </table>
+    <button onclick="addRow('monsters-table'); playSound('add-swipe.mp3')">
+      <i class="fas fa-plus"></i> Добавить монстра
+    </button>
+  </section>
+
+  <script>
+    function playSound(soundFile) {
+      const audio = new Audio(`sounds/${soundFile}`);
+      audio.play().catch(error => console.log("Ошибка воспроизведения звука:", error));
+    }
+
+    function addRow(tableId) {
+      const table = document.getElementById(tableId);
+      const row = table.insertRow();
+      row.classList.add('card', 'fade-in');
+      const nameCell = row.insertCell();
+      const maxHpCell = row.insertCell();
+      const acCell = row.insertCell();
+      const steamChargesCell = row.insertCell(); // Новый столбец
+      const inventoryCell = row.insertCell();
+      const actionCell = row.insertCell();
+
+      nameCell.contentEditable = true;
+      maxHpCell.contentEditable = true;
+      acCell.contentEditable = true;
+      steamChargesCell.contentEditable = true; // Новый столбец редактируемый
+      inventoryCell.contentEditable = true;
+
+      const deleteButton = document.createElement('button');
+      deleteButton.innerHTML = '<i class="fas fa-trash"></i> Удалить';
+      deleteButton.onclick = () => {
+        playSound('delete.mp3');
+        row.classList.add('fade-out');
+        setTimeout(() => row.remove(), 300);
+        saveData();
+      };
+      actionCell.appendChild(deleteButton);
+
+      saveData();
+    }
+
+    function saveData() {
+      const tables = ['pcs-table', 'monsters-table'];
+      tables.forEach(tableId => {
+        const table = document.getElementById(tableId);
+        const data = [];
+        for (let i = 1; i < table.rows.length; i++) {
+          const row = table.rows[i];
+          const rowData = [];
+          for (let j = 0; j < row.cells.length - 1; j++) {
+            rowData.push(row.cells[j].innerText);
+          }
+          data.push(rowData);
+        }
+        localStorage.setItem(tableId, JSON.stringify(data));
+      });
+    }
+
+    window.onload = () => {
+      ['pcs-table', 'monsters-table'].forEach(tableId => {
+        const table = document.getElementById(tableId);
+        const savedData = JSON.parse(localStorage.getItem(tableId) || '[]');
+        savedData.forEach(rowData => {
+          const row = table.insertRow();
+          row.classList.add('card', 'fade-in');
+          const nameCell = row.insertCell();
+          const maxHpCell = row.insertCell();
+          const acCell = row.insertCell();
+          const steamChargesCell = row.insertCell(); // Новый столбец
+          const inventoryCell = row.insertCell();
+          const actionCell = row.insertCell();
+
+          nameCell.innerText = rowData[0] || '';
+          maxHpCell.innerText = rowData[1] || '';
+          acCell.innerText = rowData[2] || '';
+          steamChargesCell.innerText = rowData[3] || ''; // Загружаем данные
+          inventoryCell.innerText = rowData[4] || '';
+
+          nameCell.contentEditable = true;
+          maxHpCell.contentEditable = true;
+          acCell.contentEditable = true;
+          steamChargesCell.contentEditable = true; // Новый столбец редактируемый
+          inventoryCell.contentEditable = true;
+
+          const deleteButton = document.createElement('button');
+          deleteButton.innerHTML = '<i class="fas fa-trash"></i> Удалить';
+          deleteButton.onclick = () => {
+            playSound('delete.mp3');
+            row.classList.add('fade-out');
+            setTimeout(() => row.remove(), 300);
+            saveData();
+          };
+          actionCell.appendChild(deleteButton);
+        });
+      });
+
+      document.querySelectorAll('td[contenteditable]').forEach(cell => {
+        cell.addEventListener('input', saveData);
+      });
+    };
+  </script>
+</body>
+</html>

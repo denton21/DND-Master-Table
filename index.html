@@ -10,6 +10,24 @@
 </head>
 <body>
   <h1>Кампания</h1>
+  
+  <!-- Панель для учета золота -->
+  <section id="gold-tracker" class="card">
+    <h2><i class="fas fa-coins"></i> Золото</h2>
+    <div class="gold-container">
+      <div class="gold-display">
+        <span id="gold-amount">0</span>
+        <span class="gold-icon"><i class="fas fa-coins"></i></span>
+      </div>
+      <div class="gold-controls">
+        <input type="text" id="gold-input" placeholder="+5 или -2..." aria-label="Изменить количество золота">
+        <button onclick="updateGold(); playSound('coin-sound.mp3')">
+          <i class="fas fa-check"></i> Обновить
+        </button>
+      </div>
+    </div>
+  </section>
+  
   <button onclick="window.location.href='combat.html'; playSound('button-click.mp3')">
     <i class="fas fa-sword"></i> Управление боем
   </button>
@@ -99,7 +117,65 @@
         }
         localStorage.setItem(tableId, JSON.stringify(data));
       });
+      
+      // Сохраняем текущее значение золота
+      const goldAmount = document.getElementById('gold-amount').innerText;
+      localStorage.setItem('gold-amount', goldAmount);
     }
+
+    // Функция для обновления количества золота
+    function updateGold() {
+      const goldInput = document.getElementById('gold-input');
+      const goldAmount = document.getElementById('gold-amount');
+      
+      let currentGold = parseInt(goldAmount.innerText) || 0;
+      const inputValue = goldInput.value.trim();
+      
+      if (inputValue === '') return;
+      
+      if (inputValue.startsWith('+')) {
+        // Если ввод начинается с +, добавляем значение
+        const addValue = parseInt(inputValue.substring(1));
+        if (!isNaN(addValue)) {
+          currentGold += addValue;
+        }
+      } else if (inputValue.startsWith('-')) {
+        // Если ввод начинается с -, вычитаем значение
+        const subValue = parseInt(inputValue.substring(1));
+        if (!isNaN(subValue)) {
+          currentGold -= subValue;
+        }
+      } else {
+        // Если это просто число, заменяем текущее значение
+        const newValue = parseInt(inputValue);
+        if (!isNaN(newValue)) {
+          currentGold = newValue;
+        }
+      }
+      
+      // Обновляем отображение и сохраняем
+      goldAmount.innerText = currentGold;
+      goldInput.value = '';
+      saveData();
+      
+      // Анимация изменения
+      const goldDisplay = document.querySelector('.gold-display');
+      goldDisplay.classList.add('gold-updated');
+      setTimeout(() => {
+        goldDisplay.classList.remove('gold-updated');
+      }, 500);
+    }
+    
+    // Обработка нажатия Enter в поле ввода золота
+    document.addEventListener('DOMContentLoaded', function() {
+      const goldInput = document.getElementById('gold-input');
+      goldInput.addEventListener('keyup', function(event) {
+        if (event.key === 'Enter') {
+          updateGold();
+          playSound('coin-sound.mp3');
+        }
+      });
+    });
 
     window.onload = () => {
       ['pcs-table', 'monsters-table'].forEach(tableId => {
@@ -142,6 +218,12 @@
       document.querySelectorAll('td[contenteditable]').forEach(cell => {
         cell.addEventListener('input', saveData);
       });
+      
+      // Загружаем сохраненное значение золота
+      const savedGold = localStorage.getItem('gold-amount');
+      if (savedGold !== null) {
+        document.getElementById('gold-amount').innerText = savedGold;
+      }
     };
   </script>
 </body>

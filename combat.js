@@ -530,12 +530,92 @@ function returnToCampaign() {
     playSound('button-click.mp3');
 }
 
+// Функция сохранения состояния боя
+function saveCombatData() {
+    try {
+        const table = document.getElementById('combat-table');
+        const combatData = [];
+        const characters = document.querySelectorAll('.character');
+        
+        // Собираем данные из таблицы
+        for (let i = 1; i < table.rows.length; i++) {
+            const row = table.rows[i];
+            const name = row.cells[1].innerText;
+            const category = row.cells[0].innerText;
+            const initiative = row.cells[2].innerText;
+            const currentHp = row.cells[3].dataset.currentValue;
+            const maxHp = row.cells[3].dataset.maxValue;
+            const armorClass = row.cells[4].querySelector('.ac-circle').innerText;
+            const currentSteam = row.cells[5].dataset.currentValue || '0';
+            const maxSteam = row.cells[5].dataset.maxValue || '0';
+            const history = row.cells[6].querySelector('.hp-expression')?.innerText || '';
+            
+            // Найдем позицию персонажа на поле
+            let position = { x: 0, y: 0 };
+            characters.forEach(char => {
+                if (char.dataset.name === name) {
+                    position.x = parseInt(char.style.left) / baseScale;
+                    position.y = parseInt(char.style.top) / baseScale;
+                    
+                    // Сохраняем состояния персонажа, если они есть
+                    if (char.dataset.conditions) {
+                        position.conditions = JSON.parse(char.dataset.conditions);
+                    }
+                }
+            });
+            
+            // Добавляем данные персонажа
+            combatData.push({
+                name,
+                category,
+                initiative,
+                currentHp,
+                maxHp,
+                armorClass,
+                currentSteam,
+                maxSteam,
+                history,
+                position
+            });
+        }
+        
+        // Собираем данные о стенах
+        const walls = wallHistory.map(wall => {
+            return {
+                x1: parseInt(wall.startPoint.dataset.x) / baseScale,
+                y1: parseInt(wall.startPoint.dataset.y) / baseScale,
+                x2: parseInt(wall.endPoint.dataset.x) / baseScale,
+                y2: parseInt(wall.endPoint.dataset.y) / baseScale
+            };
+        });
+        
+        // Сохраняем все данные
+        const state = {
+            timestamp: Date.now(),
+            currentTurnIndex,
+            roundCounter,
+            zoomLevel,
+            translateX,
+            translateY,
+            combatData,
+            walls
+        };
+        
+        localStorage.setItem('combatState', JSON.stringify(state));
+        console.log('Combat state saved:', state);
+    } catch (error) {
+        console.error('Error saving combat data:', error);
+    }
+}
+
 // Добавляем сохранение эффектов к основной функции сохранения
 let originalSaveCombatData = window.saveCombatData;
+
 function enhancedSaveCombatData() {
-    if (typeof originalSaveCombatData === 'function') {
-        originalSaveCombatData();
-    }
+    // Вызываем нашу основную функцию сохранения
+    saveCombatData();
+    
+    // Сохраняем эффекты
     saveEffectsData();
 }
 

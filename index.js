@@ -158,6 +158,25 @@ function loadData() {
   if (savedGold !== null) {
     document.getElementById('gold-amount').innerText = savedGold;
   }
+
+  // Обработчик для поля ввода золота - обновляем данные по нажатию Enter
+  const goldInput = document.getElementById('gold-input');
+  
+  // Обновление по нажатию Enter
+  goldInput.addEventListener('keyup', function(event) {
+    if (event.key === 'Enter') {
+      updateGold();
+      playSound('coin-sound.mp3');
+    }
+  });
+  
+  // Обработчик для обновления при потере фокуса
+  goldInput.addEventListener('blur', function() {
+    if (goldInput.value.trim() !== '') {
+      updateGold();
+      playSound('coin-sound.mp3');
+    }
+  });
 }
 
 // Добавляем обработчик перед выходом для сохранения данных

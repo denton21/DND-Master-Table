@@ -7,6 +7,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Стили для кнопок в разделе поля боя */
+        .battlefield-buttons {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+            width: 100%;
+        }
+    </style>
 </head>
 <body>
     <h1>Управление боем</h1>
@@ -51,38 +62,111 @@
         </button>
     </section>
 
-    <section>
+    <div id="battlefield-section" class="section">
         <h2>Поле боя</h2>
-        <div id="battlefield-settings">
-            <button onclick="resetPositions(); playSound('button-click.mp3')">Сброс позиций</button>
-            <button onclick="clearWalls(); playSound('button-click.mp3')">Очистить стены</button>
-            <button id="draw-mode-toggle" onclick="toggleDrawMode(); playSound('button-click.mp3')">
-                <i class="fas fa-pen"></i> Режим рисования
-            </button>
-            <button id="toggle-feet" onclick="toggleFeetDisplay(); playSound('button-click.mp3')">
-                <i class="fas fa-ruler"></i> Футы
-            </button>
+        
+        <div class="battlefield-buttons">
+            <button id="reset-positions" onclick="resetPositions()" class="btn">Сброс позиций</button>
+            <button id="clear-walls" onclick="clearWalls()" class="btn">Очистить стены</button>
+            <button id="drawing-mode" onclick="toggleDrawingMode()" class="btn">Режим рисования</button>
+            <button id="create-effect-button-main" onclick="openEffectModal()" class="btn"><i class="fas fa-fire"></i> Создать эффект</button>
         </div>
+        
         <div id="battlefield-container">
             <div id="battlefield"></div>
+            
+            <!-- Панель управления эффектами -->
+            <div id="effects-control-panel">
+                <button id="toggle-animations-button" title="Отключить анимации и футы" class="effects-control-button">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </div>
         </div>
-    </section>
+    </div>
     
-    <!-- Панель кубиков -->
-    <section>
-        <h2>Бросок кубиков</h2>
-        <div class="dice-container">
-            <button onclick="rollDice(20)" class="dice-button">d20</button>
-            <button onclick="rollDice(12)" class="dice-button">d12</button>
-            <button onclick="rollDice(10)" class="dice-button">d10</button>
-            <button onclick="rollDice(8)" class="dice-button">d8</button>
-            <button onclick="rollDice(6)" class="dice-button">d6</button>
-            <button onclick="rollDice(4)" class="dice-button">d4</button>
-        </div>
-        <div id="diceResult" class="dice-result"></div>
-    </section>
+    <!-- Модальное окно для создания эффектов на карте -->
+    <div id="modal-overlay" class="modal-overlay"></div>
 
-    <!-- Подключаем отдельный JavaScript файл вместо встроенного скрипта -->
+    <div id="effect-modal" class="modal">
+        <div class="modal-content">
+            <span id="close-effect-modal" class="close-modal">&times;</span>
+            <h3>Создать эффект</h3>
+            <div class="effect-settings">
+                <div class="settings-group">
+                    <label for="effect-name">Название эффекта</label>
+                    <input type="text" id="effect-name" placeholder="Например: Огненный шар">
+                </div>
+                
+                <div class="settings-group">
+                    <label for="effect-color">Цвет эффекта</label>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <input type="color" id="effect-color" value="#ff5722">
+                        <div class="predefined-colors">
+                            <div class="color-preset" data-color="#ff5722" style="background-color: #ff5722;"></div>
+                            <div class="color-preset" data-color="#9c27b0" style="background-color: #9c27b0;"></div>
+                            <div class="color-preset" data-color="#2196f3" style="background-color: #2196f3;"></div>
+                            <div class="color-preset" data-color="#4caf50" style="background-color: #4caf50;"></div>
+                            <div class="color-preset" data-color="#ffeb3b" style="background-color: #ffeb3b;"></div>
+                            <div class="color-preset" data-color="#795548" style="background-color: #795548;"></div>
+                </div>
+                    </div>
+                        </div>
+                
+                <div class="settings-group">
+                    <label for="effect-size">Размер (футов)</label>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <input type="number" id="effect-size" min="5" max="60" value="15">
+                        <div class="size-presets">
+                            <button class="btn size-preset" data-size="5">5</button>
+                            <button class="btn size-preset" data-size="10">10</button>
+                            <button class="btn size-preset" data-size="15">15</button>
+                            <button class="btn size-preset" data-size="20">20</button>
+                            <button class="btn size-preset" data-size="30">30</button>
+                        </div>
+                        </div>
+                </div>
+                
+                <div class="settings-group">
+                    <label for="effect-opacity">Прозрачность: <span id="opacity-value">0.6</span></label>
+                    <input type="range" id="effect-opacity" min="0.1" max="1" step="0.1" value="0.6" 
+                           oninput="document.getElementById('opacity-value').textContent = this.value">
+                </div>
+                
+                <div class="settings-group">
+                    <label for="effect-duration">Длительность (раундов)</label>
+                    <input type="number" id="effect-duration" min="0" max="100" value="10" placeholder="0 = бессрочно">
+                </div>
+                
+                <div class="settings-group">
+                    <label for="effect-animation">Анимация</label>
+                    <select id="effect-animation">
+                        <option value="none">Без анимации</option>
+                        <option value="pulse">Пульсация</option>
+                        <option value="fade">Затухание</option>
+                        <option value="wave">Волны</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="modal-buttons">
+                <button id="cancel-effect-button" class="btn">Отмена</button>
+                <button id="create-effect-button" class="btn primary">Создать</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Добавляю подключение JavaScript файла и фиксированную панель кубиков -->
     <script src="combat.js"></script>
+    
+    <!-- Фиксированная панель кубиков -->
+    <div class="dice-container">
+        <button onclick="rollDice(20)" class="dice-button dice-d20">d20</button>
+        <button onclick="rollDice(12)" class="dice-button dice-d12">d12</button>
+        <button onclick="rollDice(10)" class="dice-button dice-d10">d10</button>
+        <button onclick="rollDice(8)" class="dice-button dice-d8"><span>d8</span></button>
+        <button onclick="rollDice(6)" class="dice-button dice-d6">d6</button>
+        <button onclick="rollDice(4)" class="dice-button dice-d4">d4</button>
+    </div>
+    <div id="diceResult" class="dice-result"></div>
 </body>
 </html>

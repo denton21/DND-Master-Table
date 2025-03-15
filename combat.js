@@ -3,6 +3,7 @@ let currentTurnIndex = 0;
 let roundCounter = 0;
 const battlefieldSize = 1000; // Фиксированный размер в пикселях (1000x1000px)
 const baseScale = 8.33; // Масштаб: 1 клетка = 5 футов, 1 фут = ~8.33px
+const gridSize = 50; // Размер клетки сетки
 
 let zoomLevel = 1.0;
 const zoomMin = 0.3; // Уменьшаем минимальный зум для более широкого обзора
@@ -196,6 +197,16 @@ function toggleDrawMode() {
     }
 }
 
+// Функция для совместимости с HTML - переключает отображение расстояния в футах
+function toggleGridLabels() {
+    toggleFeetDisplay();
+}
+
+// Переключение режима рисования для кнопки в интерфейсе
+function toggleDrawingMode() {
+    toggleDrawMode();
+}
+
 // Сброс позиций
 function resetPositions() {
     document.querySelectorAll('.character').forEach(char => {
@@ -286,11 +297,27 @@ function addParticipant() {
     const currentHp = currentHpInput ? parseInt(calculateExpression(0, currentHpInput).result) : parseInt(maxHp);
     const currentSteam = maxSteam; // По умолчанию заполнен
 
+    // Генерация уникального идентификатора для персонажа
+    let uniqueId;
+    const existingRows = Array.from(document.querySelectorAll('#combat-table tr')).slice(1); // Пропускаем заголовок
+    
+    const sameNameRows = existingRows.filter(row => {
+        const nameCell = row.cells[1];
+        return nameCell.innerText === name || nameCell.innerText.startsWith(name + ' (');
+    });
+    
+    // Всегда добавляем номер, начиная с (1) для первого экземпляра
+    const count = sameNameRows.length + 1;
+    uniqueId = `${name} (${count})`;
+
     const table = document.getElementById('combat-table');
     const row = table.insertRow();
     row.classList.add('card', 'fade-in');
     row.insertCell().innerText = type === 'player' ? 'Игрок' : 'Враг';
-    row.insertCell().innerText = name;
+    
+    // Сохраняем уникальный идентификатор в таблице
+    row.insertCell().innerText = uniqueId;
+    
     row.insertCell().innerText = initiative;
     
     // HP Cell
@@ -335,13 +362,16 @@ function addParticipant() {
     deleteButton.onclick = () => {
         playSound('delete.mp3');
         row.classList.add('fade-out');
-        removeCharacterFromBattlefield(name);
+        // Используем имя из ячейки таблицы, а не оригинальное имя из participant
+        const charName = row.cells[1].innerText;
+        removeCharacterFromBattlefield(charName);
         setTimeout(() => row.remove(), 300);
         saveCombatData();
     };
     actionCell.appendChild(deleteButton);
 
-    addCharacterToBattlefield(name, type);
+    // Используем уникальный идентификатор при добавлении на поле боя
+    addCharacterToBattlefield(uniqueId, type);
 
     hpCell.addEventListener('keypress', handleHpInput);
     steamCell.addEventListener('keypress', handleSteamInput);
@@ -439,6 +469,7 @@ function sortTable() {
 
 function highlightCurrentTurn() {
     const table = document.getElementById('combat-table');
+    // Сначала удаляем класс current-player у всех персонажей
     document.querySelectorAll('.character').forEach(char => {
         char.classList.remove('current-player');
     });
@@ -448,9 +479,12 @@ function highlightCurrentTurn() {
         if (i - 1 === currentTurnIndex) {
             table.rows[i].classList.add('current-turn');
             const name = table.rows[i].cells[1].innerText;
-            const char = Array.from(document.querySelectorAll('.character')).find(c => c.dataset.name === name);
-            if (char && char.classList.contains('player')) {
-                char.classList.add('current-player');
+            
+            // Ищем персонажа по точному совпадению имени (включая номер в скобках)
+            const character = document.querySelector(`.character[data-name="${name}"]`);
+            if (character) {
+                character.classList.add('current-player');
+                console.log(`Добавлен класс current-player для персонажа: ${character.dataset.name}, тип: ${character.classList.contains('enemy') ? 'враг' : 'игрок'}`);
             }
         }
     }
@@ -496,79 +530,17 @@ function returnToCampaign() {
     playSound('button-click.mp3');
 }
 
-function saveCombatData() {
-    const table = document.getElementById('combat-table');
-    const data = [];
-    const characters = {};
-    const walls = [];
-
-    try {
-        // Сохраняем позиции персонажей
-        document.querySelectorAll('.character').forEach(char => {
-            const name = char.dataset.name;
-            const x = parseFloat(char.style.left.replace('px', '')) || 0;
-            const y = parseFloat(char.style.top.replace('px', '')) || 0;
-            const conditions = char.dataset.conditions ? JSON.parse(char.dataset.conditions) : [];
-            characters[name] = { 
-                x: x / baseScale, 
-                y: y / baseScale,
-                conditions: conditions
-            };
-        });
-
-        // Сохраняем стены
-        document.querySelectorAll('.wall-line').forEach(wall => {
-            if (!wall.classList.contains('temp-wall')) {
-                const x1 = parseFloat(wall.style.left.replace('px', '')) || 0;
-                const y1 = parseFloat(wall.style.top.replace('px', '')) || 0;
-                const width = parseFloat(wall.style.width.replace('px', '')) || 0;
-                const angle = parseFloat(wall.style.transform.match(/rotate\(([-0-9.]+)deg\)/)?.[1] || '0');
-                const x2 = x1 + width * Math.cos(angle * Math.PI / 180);
-                const y2 = y1 + width * Math.sin(angle * Math.PI / 180);
-                walls.push({ 
-                    x1: x1 / baseScale, 
-                    y1: y1 / baseScale, 
-                    x2: x2 / baseScale, 
-                    y2: y2 / baseScale 
-                });
-            }
-        });
-
-        // Сохраняем данные участников
-        for (let i = 1; i < table.rows.length; i++) {
-            const row = table.rows[i];
-            const name = row.cells[1].innerText;
-            data.push({
-                category: row.cells[0].innerText,
-                name: name,
-                initiative: parseInt(row.cells[2].innerText) || 0,
-                currentHp: row.cells[3].dataset.currentValue,
-                maxHp: row.cells[3].dataset.maxValue,
-                armorClass: row.cells[4].querySelector('.ac-circle').innerText,
-                currentSteam: row.cells[5].dataset.currentValue,
-                maxSteam: row.cells[5].dataset.maxValue,
-                history: row.cells[6].innerText,
-                position: characters[name] || { x: 0, y: 0 }
-            });
-        }
-
-        const saveData = {
-            combatData: data,
-            currentTurnIndex: currentTurnIndex,
-            roundCounter: roundCounter,
-            zoomLevel: zoomLevel,
-            translateX: translateX,
-            translateY: translateY,
-            walls: walls,
-            timestamp: Date.now()
-        };
-
-        localStorage.setItem('combatState', JSON.stringify(saveData));
-        console.log('Combat data saved successfully:', saveData);
-    } catch (error) {
-        console.error('Error saving combat data:', error);
+// Добавляем сохранение эффектов к основной функции сохранения
+let originalSaveCombatData = window.saveCombatData;
+function enhancedSaveCombatData() {
+    if (typeof originalSaveCombatData === 'function') {
+        originalSaveCombatData();
     }
+    saveEffectsData();
 }
+
+// Заменяем оригинальную функцию на нашу расширенную версию
+window.saveCombatData = enhancedSaveCombatData;
 
 function loadCombatData() {
     try {
@@ -608,13 +580,37 @@ function loadCombatData() {
         updateBattlefieldTransform();
         initializeGrid(); // Убедимся, что сетка создана
 
+        // Создаем словарь для отслеживания количества одинаковых имен
+        const nameCountMap = {};
+        
+        // Сначала подсчитаем количество каждого имени
+        state.combatData.forEach(participant => {
+            const baseName = participant.name.split(' (')[0]; // Берем имя без номера, если он уже есть
+            nameCountMap[baseName] = (nameCountMap[baseName] || 0) + 1;
+        });
+        
+        // Теперь словари для отслеживания текущего счетчика для каждого имени
+        const currentCountMap = {};
+
         // Восстанавливаем данных участников
         const data = state.combatData || [];
         data.forEach(participant => {
+            // Обрабатываем имя, чтобы добавить номер
+            let name = participant.name;
+            // Если имя уже содержит номер в скобках, используем его, иначе добавляем новый
+            if (!name.includes(' (')) {
+                const baseName = name;
+                // Если есть больше одного персонажа с таким именем, добавляем номер
+                if (nameCountMap[baseName] > 1) {
+                    currentCountMap[baseName] = (currentCountMap[baseName] || 0) + 1;
+                    name = `${baseName} (${currentCountMap[baseName]})`;
+                }
+            }
+            
             const row = table.insertRow();
             row.classList.add('card', 'fade-in');
             row.insertCell().innerText = participant.category;
-            row.insertCell().innerText = participant.name;
+            row.insertCell().innerText = name; // Используем имя с номером
             row.insertCell().innerText = participant.initiative;
             
             // HP Cell
@@ -660,7 +656,9 @@ function loadCombatData() {
             deleteButton.onclick = () => {
                 playSound('delete.mp3');
                 row.classList.add('fade-out');
-                removeCharacterFromBattlefield(participant.name);
+                // Используем имя из ячейки таблицы, а не оригинальное имя из participant
+                const charName = row.cells[1].innerText;
+                removeCharacterFromBattlefield(charName);
                 setTimeout(() => row.remove(), 300);
                 saveCombatData();
             };
@@ -668,7 +666,7 @@ function loadCombatData() {
             
             // Добавляем персонажа на поле боя
             const pos = participant.position || { x: 0, y: 0 };
-            addCharacterToBattlefield(participant.name, participant.category === 'Игрок' ? 'player' : 'enemy', pos.x * baseScale, pos.y * baseScale, participant);
+            addCharacterToBattlefield(name, participant.category === 'Игрок' ? 'player' : 'enemy', pos.x * baseScale, pos.y * baseScale, participant);
             
             // Устанавливаем обработчики событий
             hpCell.addEventListener('keypress', handleHpInput);
@@ -682,29 +680,103 @@ function loadCombatData() {
     }
 }
 
-// Функция броска кубика
+// Улучшенная функция броска кубиков
 function rollDice(sides) {
+    console.log("Бросок d" + sides + " запущен!");
+    
+    // Найдем кнопку кубика
+    const diceButtons = document.querySelectorAll('.dice-button');
+    let clickedDice = null;
+    
+    diceButtons.forEach(button => {
+        if (button.textContent.includes('d' + sides)) {
+            clickedDice = button;
+        }
+    });
+    
+    if (clickedDice) {
+        // Сначала удаляем класс, если он уже был добавлен
+        clickedDice.classList.remove('dice-rolling');
+        
+        // Запускаем анимацию через небольшую задержку
+        setTimeout(() => {
+            clickedDice.classList.add('dice-rolling');
+            
+            // Удаляем класс после завершения анимации
+            setTimeout(() => {
+                clickedDice.classList.remove('dice-rolling');
+            }, 800); // 0.8 секунды - длительность анимации
+        }, 10);
+    }
+    
+    // Генерируем случайное число
     const result = Math.floor(Math.random() * sides) + 1;
-    const resultElement = document.getElementById('diceResult');
     
-    // Анимация кнопки
-    const button = event.target;
-    button.style.transform = 'scale(0.95)';
-    setTimeout(() => button.style.transform = '', 150);
-
     // Показываем результат
+    const resultElement = document.getElementById('diceResult');
     resultElement.textContent = `d${sides}: ${result}`;
-    resultElement.classList.add('show');
+    resultElement.classList.remove('show');
     
-    // Воспроизводим звук броска
-    playSound('button-click.mp3');
-
-    // Скрываем результат через 3 секунды
+    // Запускаем анимацию отображения результата через небольшую задержку
     setTimeout(() => {
-        resultElement.classList.remove('show');
-    }, 3000);
-
+        resultElement.classList.add('show');
+        
+        // Скрываем результат через 3 секунды
+        setTimeout(() => {
+            resultElement.classList.remove('show');
+        }, 3000);
+    }, 300);
+    
+    // Проигрываем звук броска кубика
+    playSound('dice-roll.mp3');
+    
+    console.log("Результат броска d" + sides + ": " + result);
     return result;
+}
+
+// Улучшенная функция с дополнительными проверками и прямым событием
+function rollDice(sides) {
+    console.log("Бросок d" + sides + " запущен!");
+    
+    try {
+        // Расчет результата
+        const result = Math.floor(Math.random() * sides) + 1;
+        
+        // Добавляем анимацию
+        let diceButton = null;
+        document.querySelectorAll('.dice-button').forEach(button => {
+            if (button.textContent.trim() === 'd' + sides) {
+                diceButton = button;
+                button.classList.add('dice-rolling');
+                setTimeout(() => button.classList.remove('dice-rolling'), 500);
+            }
+        });
+        
+        // Обновление и отображение результата
+        const resultElement = document.getElementById('diceResult');
+        if (resultElement) {
+            resultElement.textContent = 'd' + sides + ': ' + result;
+            resultElement.classList.add('show');
+            
+            // Скрытие результата через 3 секунды
+            setTimeout(() => {
+                resultElement.classList.remove('show');
+            }, 3000);
+        } else {
+            console.error('Элемент diceResult не найден!');
+        }
+        
+        // Воспроизведение звука (если функция существует)
+        if (typeof playSound === 'function') {
+            playSound('dice');
+        }
+        
+        console.log("Результат броска d" + sides + ": " + result);
+        return result;
+    } catch (error) {
+        console.error('Ошибка в функции rollDice:', error);
+        return Math.floor(Math.random() * sides) + 1; // Гарантированный возврат результата даже при ошибке
+    }
 }
 
 // Здесь нужно будет добавить другие функции из combat.html, которые отсутствуют
@@ -730,16 +802,14 @@ function updateBattlefieldTransform() {
 function addCharacterToBattlefield(name, type, x = 0, y = 0, participant = null) {
     const battlefield = document.getElementById('battlefield');
     
-    // Проверяем, существует ли уже персонаж с таким именем
-    const existingChar = Array.from(document.querySelectorAll('.character')).find(c => c.dataset.name === name);
-    if (existingChar) {
-        existingChar.remove(); // Удаляем существующий, чтобы создать новый
-    }
+    // Вместо удаления существующего персонажа используем имя (с номером), переданное из вызывающей функции
+    // Уникальный ID уже должен быть сформирован в функции addParticipant или loadCombatData
+    const uniqueId = name;
     
     const char = document.createElement('div');
     char.classList.add('character');
     char.classList.add(type === 'player' ? 'player' : 'enemy');
-    char.dataset.name = name;
+    char.dataset.name = uniqueId;
     
     if (typeof x === 'object' && x !== null) {
         // Если передан объект position вместо координат
@@ -932,15 +1002,16 @@ function addCharacterToBattlefield(name, type, x = 0, y = 0, participant = null)
 function removeCharacterFromBattlefield(name) {
     const chars = document.querySelectorAll('.character');
     chars.forEach(char => {
-        if (char.dataset.name === name) char.remove();
+        // Проверяем только точное совпадение имени
+        if (char.dataset.name === name) {
+            char.remove();
+        }
     });
 }
 
 // Добавляем функцию переключения отображения футов
 function toggleFeetDisplay() {
     showFeetDistance = !showFeetDistance;
-    const button = document.getElementById('toggle-feet');
-    button.classList.toggle('active', showFeetDistance);
     
     // Обновляем отображение расстояний
     const selectedChar = document.querySelector('.character.current-player') || document.querySelector('.character');
@@ -1003,8 +1074,6 @@ function initializeGrid() {
         return; // Если сетка уже есть, выходим
     }
     
-    const gridSize = 50;
-    
     // Создаем клетки сетки
     for (let x = 0; x < battlefieldSize; x += gridSize) {
         for (let y = 0; y < battlefieldSize; y += gridSize) {
@@ -1059,32 +1128,68 @@ function setupBattlefieldEvents() {
     battlefieldContainer.addEventListener('mousedown', (e) => {
         if (e.target.classList.contains('character')) return;
 
-        const rect = battlefield.getBoundingClientRect();
-
         if (isDrawingWall) {
             e.preventDefault();
             if (wallStartX === null && wallStartY === null) {
+                // Проверяем, кликнули ли мы по точке привязки
                 if (e.target.classList.contains('wall-snap-point')) {
+                    // Используем координаты точки привязки
                     wallStartX = parseFloat(e.target.dataset.x);
                     wallStartY = parseFloat(e.target.dataset.y);
+                    
+                    // Визуальный эффект для точки привязки
+                    e.target.style.backgroundColor = '#4682b4';
+                    e.target.style.boxShadow = '0 0 10px #4682b4';
+                    
+                    setTimeout(() => {
+                        e.target.style.backgroundColor = '';
+                        e.target.style.boxShadow = '';
+                    }, 300);
+                    
+                    console.log('Wall start from snap point:', wallStartX, wallStartY);
                 } else {
-                    // Получаем координаты мыши относительно окна
-                    const mouseX = e.clientX;
-                    const mouseY = e.clientY;
-
-                    // Получаем координаты и трансформацию поля боя
-                    const battlefieldRect = battlefield.getBoundingClientRect();
-                    const battlefieldX = mouseX - battlefieldRect.left;
-                    const battlefieldY = mouseY - battlefieldRect.top;
-
-                    // Преобразуем координаты с учетом масштаба и смещения
-                    wallStartX = (battlefieldX - translateX) / zoomLevel;
-                    wallStartY = (battlefieldY - translateY) / zoomLevel;
-
+                    // Получаем координаты клика относительно viewport
+                    const clientX = e.clientX;
+                    const clientY = e.clientY;
+                    
+                    // Получаем границы поля боя
+                    const rect = battlefield.getBoundingClientRect();
+                    
+                    // Вычисляем позицию клика относительно поля боя
+                    const viewportX = clientX - rect.left;
+                    const viewportY = clientY - rect.top;
+                    
+                    // Учитываем текущий зум и смещение
+                    // ВАЖНОЕ ИСПРАВЛЕНИЕ: используем правильную формулу пересчета координат
+                    wallStartX = viewportX / zoomLevel - translateX / zoomLevel;
+                    wallStartY = viewportY / zoomLevel - translateY / zoomLevel;
+                    
                     // Привязка к сетке
                     const gridSize = 50;
                     wallStartX = Math.round(wallStartX / gridSize) * gridSize;
                     wallStartY = Math.round(wallStartY / gridSize) * gridSize;
+                    
+                    // Визуальный индикатор начальной точки
+                    const indicator = document.createElement('div');
+                    indicator.className = 'wall-start-indicator';
+                    indicator.style.position = 'absolute';
+                    indicator.style.left = wallStartX + 'px';
+                    indicator.style.top = wallStartY + 'px';
+                    indicator.style.width = '14px';
+                    indicator.style.height = '14px';
+                    indicator.style.borderRadius = '50%';
+                    indicator.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
+                    indicator.style.zIndex = '100';
+                    indicator.style.transform = 'translate(-50%, -50%)';
+                    battlefield.appendChild(indicator);
+                    
+                    setTimeout(() => {
+                        if (indicator.parentNode) {
+                            indicator.parentNode.removeChild(indicator);
+                        }
+                    }, 300);
+                    
+                    console.log('Wall start from grid:', wallStartX, wallStartY);
                 }
             }
         } else {
@@ -1110,16 +1215,23 @@ function setupBattlefieldEvents() {
 
             updateBattlefieldTransform();
         } else if (isDrawingWall && wallStartX !== null && wallStartY !== null) {
-            const battlefieldRect = battlefield.getBoundingClientRect();
+            // Получаем координаты мыши относительно viewport
+            const clientX = e.clientX;
+            const clientY = e.clientY;
             
-            // Получаем текущие координаты мыши
-            const mouseX = e.clientX - battlefieldRect.left;
-            const mouseY = e.clientY - battlefieldRect.top;
-
-            // Преобразуем координаты с учетом масштаба и смещения
-            const currentX = (mouseX - translateX) / zoomLevel;
-            const currentY = (mouseY - translateY) / zoomLevel;
-
+            // Получаем границы поля боя
+            const rect = battlefield.getBoundingClientRect();
+            
+            // Вычисляем позицию мыши относительно поля боя
+            const viewportX = clientX - rect.left;
+            const viewportY = clientY - rect.top;
+            
+            // Учитываем текущий зум и смещение
+            // Используем правильную формулу пересчета координат
+            const currentX = viewportX / zoomLevel - translateX / zoomLevel;
+            const currentY = viewportY / zoomLevel - translateY / zoomLevel;
+            
+            // Обновляем временную стену
             updateTempWall(wallStartX, wallStartY, currentX, currentY);
         }
     });
@@ -1130,30 +1242,84 @@ function setupBattlefieldEvents() {
             battlefieldContainer.style.cursor = isDrawingWall ? 'crosshair' : 'grab';
             saveCombatData();
         } else if (isDrawingWall && wallStartX !== null && wallStartY !== null) {
-            const battlefieldRect = battlefield.getBoundingClientRect();
-            
-            // Получаем конечные координаты мыши
-            const mouseX = e.clientX - battlefieldRect.left;
-            const mouseY = e.clientY - battlefieldRect.top;
-
-            // Преобразуем координаты с учетом масштаба и смещения
-            const currentX = (mouseX - translateX) / zoomLevel;
-            const currentY = (mouseY - translateY) / zoomLevel;
-
-            const dx = currentX - wallStartX;
-            const dy = currentY - wallStartY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            if (distance > 25) {
-                const { snapX, snapY } = updateTempWall(wallStartX, wallStartY, currentX, currentY);
-                drawWall(wallStartX, wallStartY, snapX, snapY);
+            // Проверяем, закончили ли мы на точке привязки
+            if (e.target.classList.contains('wall-snap-point')) {
+                const endX = parseFloat(e.target.dataset.x);
+                const endY = parseFloat(e.target.dataset.y);
+                
+                // Визуальный эффект для точки привязки
+                e.target.style.backgroundColor = '#4682b4';
+                e.target.style.boxShadow = '0 0 10px #4682b4';
+                
+                setTimeout(() => {
+                    e.target.style.backgroundColor = '';
+                    e.target.style.boxShadow = '';
+                }, 300);
+                
+                // Вычисляем расстояние от начальной точки
+                const dx = endX - wallStartX;
+                const dy = endY - wallStartY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Если расстояние достаточное, создаем стену
+                if (distance > 25) {
+                    drawWall(wallStartX, wallStartY, endX, endY);
+                    console.log('Wall end at snap point:', endX, endY);
+                    
+                    try {
+                        playSound('wall-build.mp3');
+                    } catch (e) {
+                        console.log('Звук недоступен');
+                    }
+                }
+            } else {
+                // Получаем координаты мыши относительно viewport
+                const clientX = e.clientX;
+                const clientY = e.clientY;
+                
+                // Получаем границы поля боя
+                const rect = battlefield.getBoundingClientRect();
+                
+                // Вычисляем позицию мыши относительно поля боя
+                const viewportX = clientX - rect.left;
+                const viewportY = clientY - rect.top;
+                
+                // Учитываем текущий зум и смещение с правильной формулой
+                const currentX = viewportX / zoomLevel - translateX / zoomLevel;
+                const currentY = viewportY / zoomLevel - translateY / zoomLevel;
+                
+                // Вычисляем расстояние от начальной точки
+                const dx = currentX - wallStartX;
+                const dy = currentY - wallStartY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+        
+                // Привязка к сетке
+                const gridSize = 50;
+                const snapX = Math.round(currentX / gridSize) * gridSize;
+                const snapY = Math.round(currentY / gridSize) * gridSize;
+                
+                // Если расстояние достаточное, создаем стену
+                if (distance > 25) {
+                    drawWall(wallStartX, wallStartY, snapX, snapY);
+                    console.log('Wall end at grid:', snapX, snapY);
+                    
+                    try {
+                        playSound('wall-build.mp3');
+                    } catch (e) {
+                        console.log('Звук недоступен');
+                    }
+                }
             }
-
+            
+            // Удаляем временную стену
             const tempLine = battlefield.querySelector('.temp-wall');
             if (tempLine) tempLine.remove();
-
+            
+            // Сбрасываем начальные координаты
             wallStartX = null;
             wallStartY = null;
+            
+            // Сохраняем данные
             saveCombatData();
         }
     });
@@ -1161,36 +1327,41 @@ function setupBattlefieldEvents() {
 
 function updateTempWall(startX, startY, currentX, currentY) {
     const battlefield = document.getElementById('battlefield');
-    let tempLine = battlefield.querySelector('.temp-wall');
     
-    if (!tempLine) {
-        tempLine = document.createElement('div');
-        tempLine.classList.add('wall-line', 'temp-wall');
-        battlefield.appendChild(tempLine);
+    // Удаляем предыдущую временную стену если есть
+    const oldTempLine = battlefield.querySelector('.temp-wall');
+    if (oldTempLine) {
+        oldTempLine.remove();
     }
-
+    
+    // Создаем новую временную стену
+    const tempLine = document.createElement('div');
+    tempLine.classList.add('wall-line', 'temp-wall');
+    battlefield.appendChild(tempLine);
+    
     // Привязка к сетке
     const gridSize = 50;
     const snapX = Math.round(currentX / gridSize) * gridSize;
     const snapY = Math.round(currentY / gridSize) * gridSize;
     
+    // Вычисляем параметры стены
     const dx = snapX - startX;
     const dy = snapY - startY;
     const length = Math.sqrt(dx * dx + dy * dy);
     const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-
-    tempLine.style.left = startX + 'px';
-    tempLine.style.top = startY + 'px';
-    tempLine.style.width = length + 'px';
+    
+    // Устанавливаем стиль с точным позиционированием
+    tempLine.style.left = `${startX}px`;
+    tempLine.style.top = `${startY}px`;
+    tempLine.style.width = `${length}px`;
+    tempLine.style.transformOrigin = '0 0';
     tempLine.style.transform = `rotate(${angle}deg)`;
-
+    
     return { snapX, snapY };
 }
 
 function drawWall(x1, y1, x2, y2) {
     const battlefield = document.getElementById('battlefield');
-    const line = document.createElement('div');
-    line.classList.add('wall-line');
     
     // Привязка к сетке
     const gridSize = 50;
@@ -1199,32 +1370,55 @@ function drawWall(x1, y1, x2, y2) {
     x2 = Math.round(x2 / gridSize) * gridSize;
     y2 = Math.round(y2 / gridSize) * gridSize;
     
+    // Проверка на минимальную длину
     const dx = x2 - x1;
     const dy = y2 - y1;
     const length = Math.sqrt(dx * dx + dy * dy);
+    
+    if (length < 25) {
+        console.log('Стена слишком короткая, отмена');
+        return null;
+    }
+    
+    // Вычисляем угол для поворота линии
     const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-
-    line.style.left = x1 + 'px';
-    line.style.top = y1 + 'px';
-    line.style.width = length + 'px';
+    
+    // Создаём линию стены
+    const line = document.createElement('div');
+    line.classList.add('wall-line');
+    line.style.position = 'absolute';
+    line.style.left = `${x1}px`;
+    line.style.top = `${y1}px`;
+    line.style.width = `${length}px`;
+    line.style.transformOrigin = '0 0';
     line.style.transform = `rotate(${angle}deg)`;
-
-    // Добавляем точки привязки на концах стены
+    line.style.zIndex = '10';
+    battlefield.appendChild(line);
+    
+    // Создаём точки привязки на концах
     const startPoint = document.createElement('div');
     startPoint.classList.add('wall-snap-point');
-    startPoint.style.left = x1 + 'px';
-    startPoint.style.top = y1 + 'px';
+    startPoint.style.position = 'absolute';
+    startPoint.style.left = `${x1}px`;
+    startPoint.style.top = `${y1}px`;
     startPoint.dataset.x = x1;
     startPoint.dataset.y = y1;
-
+    startPoint.style.transform = 'translate(-50%, -50%)';
+    battlefield.appendChild(startPoint);
+    
     const endPoint = document.createElement('div');
     endPoint.classList.add('wall-snap-point');
-    endPoint.style.left = x2 + 'px';
-    endPoint.style.top = y2 + 'px';
+    endPoint.style.position = 'absolute';
+    endPoint.style.left = `${x2}px`;
+    endPoint.style.top = `${y2}px`;
     endPoint.dataset.x = x2;
     endPoint.dataset.y = y2;
-
-    line.addEventListener('dblclick', () => {
+    endPoint.style.transform = 'translate(-50%, -50%)';
+    battlefield.appendChild(endPoint);
+    
+    // Добавляем обработчик двойного клика для удаления
+    line.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
         if (confirm('Удалить эту стену?')) {
             const index = wallHistory.findIndex(w => w.line === line);
             if (index !== -1) {
@@ -1236,14 +1430,10 @@ function drawWall(x1, y1, x2, y2) {
             saveCombatData();
         }
     });
-
-    battlefield.appendChild(line);
-    battlefield.appendChild(startPoint);
-    battlefield.appendChild(endPoint);
-
+    
     // Добавляем стену в историю
     wallHistory.push({ line, startPoint, endPoint });
-
+    
     return { line, startPoint, endPoint };
 }
 
@@ -1278,4 +1468,679 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Добавляем автоматическое сохранение каждые 30 секунд
     setInterval(saveCombatData, 30000);
+});
+
+// Функции для работы с эффектами на карте боя
+let battleEffects = [];
+let effectIdCounter = 0;
+let isEffectAnimationsEnabled = true;
+
+// Открытие модального окна для создания эффекта
+function openEffectModal() {
+    document.getElementById('effect-modal').style.display = 'block';
+    document.getElementById('modal-overlay').style.display = 'block';
+    
+    // Воспроизведение звука (если функция существует)
+    if (typeof playSound === 'function') {
+        playSound('ui');
+    }
+    
+    // Сброс формы при открытии
+    document.getElementById('effect-name').value = '';
+    document.getElementById('effect-color').value = '#ff5722';
+    document.getElementById('effect-size').value = 15; // 15 футов по умолчанию
+    document.getElementById('effect-opacity').value = 0.6;
+    document.getElementById('effect-duration').value = 10;
+    document.getElementById('effect-animation').value = 'none';
+    
+    // Сброс активных классов для пресетов
+    document.querySelectorAll('.color-preset').forEach(preset => {
+        preset.classList.remove('active');
+    });
+    
+    document.querySelectorAll('.size-preset').forEach(preset => {
+        preset.classList.remove('active');
+    });
+    
+    // Активируем пресет размера 15 футов по умолчанию
+    document.querySelectorAll('.size-preset').forEach(preset => {
+        if (preset.getAttribute('data-size') === '15') {
+            preset.classList.add('active');
+        }
+    });
+    
+    // Сбрасываем ID редактируемого эффекта
+    document.getElementById('effect-modal').dataset.editEffectId = '';
+    
+    // Сбрасываем текст кнопки и обработчик
+    const createButton = document.getElementById('create-effect-button');
+    if (createButton) {
+        createButton.textContent = 'Создать';
+        createButton.onclick = function() {
+            // Определение позиции (центр видимой области карты)
+            const battlefield = document.getElementById('battlefield');
+            const battlefieldRect = battlefield.getBoundingClientRect();
+            const centerX = (battlefield.scrollLeft + (battlefieldRect.width / 2)) / gridSize;
+            const centerY = (battlefield.scrollTop + (battlefieldRect.height / 2)) / gridSize;
+            
+            // Вызываем функцию createEffect напрямую
+            createEffect(centerX, centerY);
+            // Сохраняем данные эффектов
+            saveEffectsData();
+        };
+    }
+}
+
+// Закрытие модального окна
+function closeEffectModal() {
+    document.getElementById('effect-modal').style.display = 'none';
+    document.getElementById('modal-overlay').style.display = 'none';
+}
+
+// Создание эффекта
+function createEffect(x, y) {
+    const name = document.getElementById('effect-name').value || 'Эффект';
+    const color = document.getElementById('effect-color').value;
+    const sizeInFeet = parseInt(document.getElementById('effect-size').value);
+    // Преобразуем размер из футов в пиксели (5 футов = gridSize)
+    const sizeInPixels = Math.round((sizeInFeet / 5) * gridSize);
+    
+    const opacity = parseFloat(document.getElementById('effect-opacity').value);
+    const duration = parseInt(document.getElementById('effect-duration').value);
+    const animation = document.getElementById('effect-animation').value;
+    
+    // Создание нового эффекта
+    const effectId = 'effect-' + effectIdCounter++;
+    const effect = {
+        id: effectId,
+        name: name,
+        color: color,
+        size: sizeInPixels, // Храним в пикселях для отображения
+        sizeInFeet: sizeInFeet, // Храним в футах для редактирования
+        opacity: opacity,
+        duration: duration,
+        animation: animation,
+        x: x,
+        y: y,
+        remaining: duration
+    };
+    
+    battleEffects.push(effect);
+    renderEffect(effect);
+    updateBattleEffectsList();
+    closeEffectModal();
+    
+    // Воспроизведение звука (если функция существует)
+    if (typeof playSound === 'function') {
+        playSound('create');
+    }
+}
+
+// Отрисовка эффекта на карте
+function renderEffect(effect) {
+    const battlefield = document.getElementById('battlefield');
+    
+    // Удалить старый элемент, если он существует
+    const existingElement = document.getElementById(effect.id);
+    if (existingElement) {
+        existingElement.remove();
+    }
+    
+    // Создание нового элемента
+    const effectElement = document.createElement('div');
+    effectElement.id = effect.id;
+    effectElement.className = 'battle-effect';
+    
+    // Установка стилей
+    effectElement.style.width = effect.size + 'px';
+    effectElement.style.height = effect.size + 'px';
+    effectElement.style.backgroundColor = hexToRgba(effect.color, effect.opacity);
+    effectElement.style.left = (effect.x * gridSize) - (effect.size / 2) + 'px';
+    effectElement.style.top = (effect.y * gridSize) - (effect.size / 2) + 'px';
+    
+    // Добавление анимации, если она включена
+    if (isEffectAnimationsEnabled && effect.animation !== 'none') {
+        // Для анимации пульсации используем отдельный внутренний элемент,
+        // чтобы избежать конфликтов с трансформацией при перетаскивании
+        if (effect.animation === 'pulse') {
+            const pulseElement = document.createElement('div');
+            pulseElement.className = 'effect-animation-pulse';
+            pulseElement.style.position = 'absolute';
+            pulseElement.style.width = '100%';
+            pulseElement.style.height = '100%';
+            pulseElement.style.top = '0';
+            pulseElement.style.left = '0';
+            pulseElement.style.borderRadius = '50%';
+            pulseElement.style.background = hexToRgba(effect.color, effect.opacity / 2);
+            effectElement.appendChild(pulseElement);
+        } else {
+            effectElement.classList.add('effect-animation-' + effect.animation);
+        }
+    }
+    
+    // Добавление названия эффекта
+    const nameElement = document.createElement('div');
+    nameElement.className = 'effect-name';
+    nameElement.textContent = effect.name;
+    effectElement.appendChild(nameElement);
+    
+    // Добавление размера в футах
+    const sizeInFeet = effect.sizeInFeet || Math.round((effect.size / gridSize) * 5);
+    const sizeElement = document.createElement('div');
+    sizeElement.className = 'effect-size';
+    sizeElement.textContent = sizeInFeet + ' фт.';
+    effectElement.appendChild(sizeElement);
+    
+    // Добавление счетчика оставшегося времени
+    if (effect.duration > 0) {
+        const durationElement = document.createElement('div');
+        durationElement.className = 'effect-duration';
+        durationElement.textContent = effect.remaining + ' раунд.';
+        effectElement.appendChild(durationElement);
+    }
+    
+    // Добавление кнопок управления
+    const controlsElement = document.createElement('div');
+    controlsElement.className = 'effect-controls';
+    
+    // Кнопка редактирования
+    const editButton = document.createElement('div');
+    editButton.className = 'effect-control-button';
+    editButton.innerHTML = '<i class="fas fa-edit"></i>';
+    editButton.title = 'Редактировать';
+    editButton.onclick = (e) => {
+        e.stopPropagation();
+        editEffect(effect.id);
+    };
+    controlsElement.appendChild(editButton);
+    
+    // Кнопка удаления
+    const deleteButton = document.createElement('div');
+    deleteButton.className = 'effect-control-button';
+    deleteButton.innerHTML = '<i class="fas fa-times"></i>';
+    deleteButton.title = 'Удалить';
+    deleteButton.onclick = (e) => {
+        e.stopPropagation();
+        removeEffect(effect.id);
+    };
+    controlsElement.appendChild(deleteButton);
+    
+    effectElement.appendChild(controlsElement);
+    
+    // Добавление обработчика для перетаскивания
+    effectElement.addEventListener('mousedown', startDraggingEffect);
+    
+    // Добавление эффекта на карту
+    battlefield.appendChild(effectElement);
+}
+
+// Перевод hex цвета в rgba
+function hexToRgba(hex, opacity) {
+    hex = hex.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+}
+
+// Обработчики событий для перетаскивания эффектов
+let draggingEffect = null;
+let initialEffectX, initialEffectY;
+let initialMouseX, initialMouseY;
+
+function startDraggingEffect(e) {
+    // Игнорируем событие, если кликнули по кнопкам управления
+    if (e.target.closest('.effect-controls')) {
+        return;
+    }
+    
+    e.preventDefault();
+    e.stopPropagation(); // Останавливаем всплытие события, чтобы не двигалась карта
+    
+    draggingEffect = this;
+    const effectId = draggingEffect.id;
+    const effect = battleEffects.find(effect => effect.id === effectId);
+    
+    // Сохраняем начальные позиции
+    initialEffectX = effect.x;
+    initialEffectY = effect.y;
+    initialMouseX = e.clientX;
+    initialMouseY = e.clientY;
+    
+    document.addEventListener('mousemove', moveEffect);
+    document.addEventListener('mouseup', stopDraggingEffect);
+    
+    // Добавление класса перетаскивания
+    draggingEffect.classList.add('dragging');
+    
+    // Воспроизведение звука (если функция существует)
+    if (typeof playSound === 'function') {
+        playSound('move');
+    }
+}
+
+function moveEffect(e) {
+    if (!draggingEffect) return;
+    
+    e.preventDefault();
+    e.stopPropagation(); // Останавливаем всплытие события
+    
+    const effectId = draggingEffect.id;
+    const effect = battleEffects.find(effect => effect.id === effectId);
+    
+    // Рассчитываем новую позицию
+    const dx = e.clientX - initialMouseX;
+    const dy = e.clientY - initialMouseY;
+    effect.x = initialEffectX + (dx / gridSize);
+    effect.y = initialEffectY + (dy / gridSize);
+    
+    // Обновляем позицию элемента
+    draggingEffect.style.left = (effect.x * gridSize) - (effect.size / 2) + 'px';
+    draggingEffect.style.top = (effect.y * gridSize) - (effect.size / 2) + 'px';
+}
+
+function stopDraggingEffect(e) {
+    if (!draggingEffect) return;
+    
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation(); // Останавливаем всплытие события
+    }
+    
+    // Удаляем класс перетаскивания
+    draggingEffect.classList.remove('dragging');
+    draggingEffect = null;
+    
+    document.removeEventListener('mousemove', moveEffect);
+    document.removeEventListener('mouseup', stopDraggingEffect);
+    
+    // Сохраняем состояние эффектов
+    saveEffectsData();
+}
+
+// Удаление эффекта
+function removeEffect(effectId) {
+    const index = battleEffects.findIndex(effect => effect.id === effectId);
+    if (index !== -1) {
+        battleEffects.splice(index, 1);
+        const element = document.getElementById(effectId);
+        if (element) {
+            element.remove();
+        }
+        updateBattleEffectsList();
+        
+        // Воспроизведение звука (если функция существует)
+        if (typeof playSound === 'function') {
+            playSound('delete');
+        }
+    }
+}
+
+// Редактирование эффекта
+function editEffect(effectId) {
+    const effect = battleEffects.find(effect => effect.id === effectId);
+    if (!effect) return;
+    
+    // Открытие модального окна и заполнение данными
+    openEffectModal();
+    
+    document.getElementById('effect-name').value = effect.name;
+    document.getElementById('effect-color').value = effect.color;
+    
+    // Используем сохраненный размер в футах или конвертируем из пикселей
+    const sizeInFeet = effect.sizeInFeet || Math.round((effect.size / gridSize) * 5);
+    document.getElementById('effect-size').value = sizeInFeet;
+    
+    document.getElementById('effect-opacity').value = effect.opacity;
+    document.getElementById('effect-duration').value = effect.duration;
+    document.getElementById('effect-animation').value = effect.animation;
+    
+    // Активируем соответствующий пресет цвета, если такой есть
+    document.querySelectorAll('.color-preset').forEach(preset => {
+        if (preset.getAttribute('data-color') === effect.color) {
+            preset.classList.add('active');
+        }
+    });
+    
+    // Активируем соответствующий пресет размера, если такой есть
+    document.querySelectorAll('.size-preset').forEach(preset => {
+        if (preset.getAttribute('data-size') == sizeInFeet) {
+            preset.classList.add('active');
+        }
+    });
+    
+    // Сохраняем ID эффекта для обновления вместо создания нового
+    document.getElementById('effect-modal').dataset.editEffectId = effectId;
+    
+    // Изменяем текст кнопки на "Сохранить" и обновляем обработчик
+    const createButton = document.getElementById('create-effect-button');
+    if (createButton) {
+        createButton.textContent = 'Сохранить';
+        createButton.onclick = function() {
+            // Вызываем оригинальную функцию обновления эффекта
+            updateEffect(effectId);
+        };
+    }
+}
+
+// Функция обновления существующего эффекта
+function updateEffect(effectId) {
+    const effect = battleEffects.find(effect => effect.id === effectId);
+    if (!effect) return;
+    
+    effect.name = document.getElementById('effect-name').value || 'Эффект';
+    effect.color = document.getElementById('effect-color').value;
+    effect.sizeInFeet = parseInt(document.getElementById('effect-size').value);
+    effect.size = Math.round((effect.sizeInFeet / 5) * gridSize); // Конвертируем футы в пиксели
+    effect.opacity = parseFloat(document.getElementById('effect-opacity').value);
+    effect.duration = parseInt(document.getElementById('effect-duration').value);
+    effect.animation = document.getElementById('effect-animation').value;
+    effect.remaining = effect.duration; // Обновляем оставшееся время
+    
+    // Перерисовываем эффект
+    renderEffect(effect);
+    
+    // Закрываем модальное окно
+    closeEffectModal();
+    
+    // Сохраняем состояние эффектов
+    saveEffectsData();
+    
+    // Воспроизведение звука (если функция существует)
+    if (typeof playSound === 'function') {
+        playSound('update');
+    }
+}
+
+// Обновление счетчика раундов для эффектов
+function updateEffectsDuration() {
+    // Проверяем, находимся ли мы в начале нового раунда
+    // Если currentTurnIndex не равен 0, значит это не смена раунда, а просто следующий ход
+    if (currentTurnIndex !== 0) return;
+    
+    for (let effect of battleEffects) {
+        if (effect.duration > 0 && effect.remaining > 0) {
+            effect.remaining--;
+            
+            // Если время эффекта истекло, удаляем его
+            if (effect.remaining <= 0) {
+                setTimeout(() => {
+                    removeEffect(effect.id);
+                }, 500);
+            } else {
+                // Обновляем отображение оставшегося времени
+                const element = document.getElementById(effect.id);
+                if (element) {
+                    const durationElement = element.querySelector('.effect-duration');
+                    if (durationElement) {
+                        durationElement.textContent = effect.remaining + ' раунд.';
+                    }
+                }
+            }
+        }
+    }
+    
+    updateBattleEffectsList();
+}
+
+// Обновление списка эффектов в панели управления
+function updateBattleEffectsList() {
+    // Если есть функция обновления интерфейса, мы можем добавить в неё обновление списка эффектов
+    // Для упрощения этот функционал пока оставим пустым
+}
+
+// Включение/отключение анимаций эффектов
+function toggleEffectAnimations() {
+    // Переключаем отображение футов
+    toggleFeetDisplay();
+    
+    // Переключаем анимации эффектов
+    isEffectAnimationsEnabled = !isEffectAnimationsEnabled;
+    
+    for (let effect of battleEffects) {
+        const element = document.getElementById(effect.id);
+        if (element) {
+            // Обновляем отображение анимаций для всех эффектов
+            
+            // Сначала удаляем все анимации
+            element.classList.remove('effect-animation-fade', 'effect-animation-wave');
+            const pulseElement = element.querySelector('.effect-animation-pulse');
+            if (pulseElement) {
+                pulseElement.remove();
+            }
+            
+            // Добавляем анимацию, если она включена
+            if (isEffectAnimationsEnabled && effect.animation !== 'none') {
+                if (effect.animation === 'pulse') {
+                    const newPulseElement = document.createElement('div');
+                    newPulseElement.className = 'effect-animation-pulse';
+                    newPulseElement.style.position = 'absolute';
+                    newPulseElement.style.width = '100%';
+                    newPulseElement.style.height = '100%';
+                    newPulseElement.style.top = '0';
+                    newPulseElement.style.left = '0';
+                    newPulseElement.style.borderRadius = '50%';
+                    newPulseElement.style.background = hexToRgba(effect.color, effect.opacity / 2);
+                    element.appendChild(newPulseElement);
+                } else {
+                    element.classList.add('effect-animation-' + effect.animation);
+                }
+            }
+        }
+    }
+    
+    // Воспроизведение звука (если функция существует)
+    if (typeof playSound === 'function') {
+        playSound('ui');
+    }
+    
+    // Обновление текста кнопки, если она существует
+    const animButton = document.getElementById('toggle-animations-button');
+    if (animButton) {
+        animButton.innerHTML = isEffectAnimationsEnabled 
+            ? '<i class="fas fa-eye"></i>' 
+            : '<i class="fas fa-eye-slash"></i>';
+        animButton.title = isEffectAnimationsEnabled && showFeetDistance
+            ? 'Отключить анимации и футы' 
+            : 'Включить анимации и футы';
+    }
+}
+
+// Инициализация событий для модального окна и пресетов
+function initEffectsSystem() {
+    // Проверяем, что необходимые элементы существуют
+    const modalOverlay = document.getElementById('modal-overlay');
+    const closeEffectModalBtn = document.getElementById('close-effect-modal');
+    const createEffectBtn = document.getElementById('create-effect-button');
+    const cancelEffectBtn = document.getElementById('cancel-effect-button');
+    
+    if (modalOverlay) {
+        modalOverlay.addEventListener('click', closeEffectModal);
+    }
+    
+    if (closeEffectModalBtn) {
+        closeEffectModalBtn.addEventListener('click', closeEffectModal);
+    }
+    
+    // Удаляем неправильный обработчик для кнопки создания эффекта
+    // Правильный обработчик устанавливается в openEffectModal
+    if (cancelEffectBtn) {
+        cancelEffectBtn.addEventListener('click', closeEffectModal);
+    }
+    
+    // Обработчики для пресетов цветов
+    document.querySelectorAll('.color-preset').forEach(preset => {
+        preset.addEventListener('click', function() {
+            const color = this.getAttribute('data-color');
+            const effectColorInput = document.getElementById('effect-color');
+            if (effectColorInput) {
+                effectColorInput.value = color;
+            }
+            
+            // Обновление активного класса
+            document.querySelectorAll('.color-preset').forEach(p => {
+                p.classList.remove('active');
+            });
+            this.classList.add('active');
+        });
+    });
+    
+    // Обработчики для пресетов размеров
+    document.querySelectorAll('.size-preset').forEach(preset => {
+        preset.addEventListener('click', function() {
+            const size = this.getAttribute('data-size');
+            const effectSizeInput = document.getElementById('effect-size');
+            if (effectSizeInput) {
+                effectSizeInput.value = size;
+            }
+            
+            // Обновление активного класса
+            document.querySelectorAll('.size-preset').forEach(p => {
+                p.classList.remove('active');
+            });
+            this.classList.add('active');
+        });
+    });
+    
+    // Обработчик для кнопки создания эффекта
+    const createEffectButton = document.getElementById('create-effect-button-main');
+    if (createEffectButton) {
+        createEffectButton.addEventListener('click', openEffectModal);
+    }
+    
+    // Обработчик для кнопки переключения анимаций
+    const toggleAnimationsButton = document.getElementById('toggle-animations-button');
+    if (toggleAnimationsButton) {
+        toggleAnimationsButton.addEventListener('click', toggleEffectAnimations);
+    }
+    
+    // Связываем обновление эффектов с функцией перехода хода
+    const originalNextTurn = window.nextTurn;
+    window.nextTurn = function() {
+        // Запоминаем предыдущий индекс хода перед вызовом оригинальной функции
+        const prevTurnIndex = currentTurnIndex;
+        
+        if (typeof originalNextTurn === 'function') {
+            originalNextTurn();
+        }
+        
+        // Если после перехода к следующему ходу currentTurnIndex стал 0,
+        // значит начался новый раунд, и нужно обновить счетчики эффектов
+        if (currentTurnIndex === 0 && prevTurnIndex !== 0) {
+            updateEffectsDuration();
+        }
+    };
+    
+    // Загружаем сохранённые эффекты
+    loadEffectsData();
+    
+    console.log("Система эффектов инициализирована");
+}
+
+// Загрузка данных об эффектах
+function loadEffectsData() {
+    const savedEffects = localStorage.getItem('battleEffects');
+    if (savedEffects) {
+        try {
+            battleEffects = JSON.parse(savedEffects);
+            
+            // Отрисовка всех эффектов
+            battleEffects.forEach(effect => {
+                renderEffect(effect);
+            });
+            
+            // Обновление счетчика id, чтобы не было конфликтов
+            if (battleEffects.length > 0) {
+                const maxId = Math.max(...battleEffects.map(effect => {
+                    const idNum = parseInt(effect.id.replace('effect-', ''), 10);
+                    return isNaN(idNum) ? 0 : idNum;
+                }));
+                effectIdCounter = maxId + 1;
+            }
+        } catch (e) {
+            console.error('Ошибка при загрузке данных эффектов:', e);
+            battleEffects = [];
+        }
+    }
+}
+
+// Сохранение данных об эффектах
+function saveEffectsData() {
+    localStorage.setItem('battleEffects', JSON.stringify(battleEffects));
+}
+
+// Обновляем функцию createEffect для автоматического сохранения
+const originalCreateEffect = createEffect;
+createEffect = function(x, y) {
+    // Просто вызываем оригинальную функцию и сохраняем результат
+    // а не создаем эффект дважды
+    originalCreateEffect(x, y);
+    saveEffectsData();
+};
+
+// Обновляем функцию removeEffect для автоматического сохранения
+const originalRemoveEffect = removeEffect;
+removeEffect = function(effectId) {
+    originalRemoveEffect(effectId);
+    saveEffectsData();
+};
+
+// Обновляем функцию stopDraggingEffect для автоматического сохранения
+const originalStopDraggingEffect = stopDraggingEffect;
+stopDraggingEffect = function() {
+    originalStopDraggingEffect();
+    if (draggingEffect) {
+        saveEffectsData();
+    }
+};
+
+// Запуск инициализации после загрузки страницы
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initEffectsSystem);
+} else {
+    initEffectsSystem();
+}
+
+// Функция для инициализации обработчиков событий для кубиков
+function initDiceEventListeners() {
+    console.log("Инициализация обработчиков событий для кубиков...");
+    const diceButtons = [
+        { selector: '.dice-d20', sides: 20 },
+        { selector: '.dice-d12', sides: 12 },
+        { selector: '.dice-d10', sides: 10 },
+        { selector: '.dice-d8', sides: 8 },
+        { selector: '.dice-d6', sides: 6 },
+        { selector: '.dice-d4', sides: 4 }
+    ];
+    
+    diceButtons.forEach(dice => {
+        const button = document.querySelector(dice.selector);
+        if (button) {
+            console.log(`Добавляем обработчик для ${dice.selector}`);
+            
+            // Удаляем существующие обработчики
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
+            
+            // Добавляем новый обработчик
+            newButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log(`Клик по кубику d${dice.sides}`);
+                rollDice(dice.sides);
+                return false;
+            });
+        } else {
+            console.error(`Кнопка ${dice.selector} не найдена!`);
+        }
+    });
+}
+
+// Добавляем инициализацию при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOMContentLoaded - инициализация кубиков...");
+    initDiceEventListeners();
+    
+    // Инициализация через таймаут для гарантии загрузки всего DOM
+    setTimeout(initDiceEventListeners, 1000);
 }); 

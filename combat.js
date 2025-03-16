@@ -524,10 +524,58 @@ function updateRoundCounter() {
 }
 
 function returnToCampaign() {
-    saveCombatData();
-    localStorage.setItem('lastSave', Date.now().toString());
-    window.location.href = 'index.html';
-    playSound('button-click.mp3');
+    console.log("Функция returnToCampaign вызвана");
+    try {
+        console.log("Сохраняем данные боя...");
+        saveCombatData();
+        console.log("Данные боя сохранены");
+        
+        console.log("Устанавливаем lastSave в localStorage");
+        localStorage.setItem('lastSave', Date.now().toString());
+        
+        console.log("Воспроизводим звук (если возможно)");
+        try {
+            playSound('button-click.mp3');
+        } catch (soundError) {
+            console.warn("Не удалось воспроизвести звук:", soundError);
+        }
+        
+        console.log("Переходим на index.html");
+        // Используем разные методы для перехода на случай проблем с одним из них
+        try {
+            // Метод 1: Прямое изменение location.href
+            window.location.href = 'index.html';
+            
+            // Метод 2: Используем setTimeout как запасной вариант
+            setTimeout(function() {
+                if (window.location.href.indexOf('index.html') === -1) {
+                    console.log("Пробуем другой метод перехода");
+                    window.location.replace('index.html');
+                }
+            }, 300);
+            
+            // Метод 3: Создаем и кликаем по ссылке
+            setTimeout(function() {
+                if (window.location.href.indexOf('index.html') === -1) {
+                    console.log("Создаем и кликаем по ссылке");
+                    const link = document.createElement('a');
+                    link.href = 'index.html';
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    link.click();
+                }
+            }, 600);
+        } catch (navError) {
+            console.error("Ошибка при навигации:", navError);
+            // Последняя попытка с прямым присваиванием
+            document.location = 'index.html';
+        }
+    } catch (error) {
+        console.error("Ошибка в returnToCampaign:", error);
+        // В случае ошибки всё равно пытаемся перейти на главную страницу
+        alert("Произошла ошибка, нажмите OK для возврата к кампании");
+        window.location.href = 'index.html';
+    }
 }
 
 // Функция сохранения состояния боя
@@ -1533,6 +1581,20 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Инициализация событий для элементов на странице
     document.getElementById('participant-type').addEventListener('change', loadParticipantList);
+    
+    // Добавляем обработчик для кнопки "Вернуться к кампании"
+    const returnButton = document.querySelector('button[onclick="returnToCampaign()"]');
+    if (returnButton) {
+        console.log("Нашли кнопку 'Вернуться к кампании', заменяем обработчик");
+        // Удаляем атрибут onclick для предотвращения двойного вызова
+        returnButton.removeAttribute('onclick');
+        returnButton.addEventListener('click', function() {
+            console.log("Клик по кнопке 'Вернуться к кампании'");
+            returnToCampaign(); // Вызываем нашу функцию
+        });
+    } else {
+        console.error("Кнопка 'Вернуться к кампании' не найдена");
+    }
     
     // Добавляем обработчик beforeunload
     window.addEventListener('beforeunload', (e) => {
